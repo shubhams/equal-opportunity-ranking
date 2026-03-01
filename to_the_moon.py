@@ -57,7 +57,7 @@ def opt_ranker(args, rel, g, alpha_list):
     # min_tradeoff, min_tradeoff_perm = float('inf'), None
 
     # get max util perm
-    max_U_perm = np.argsort(-rel)
+    max_U_perm = np.argsort(-rel, stable=True)
     max_U = f_util(make_permutation_matrix(max_U_perm))
     opt_dict['max_U'] = max_U
     opt_dict['max_U_perm'] = max_U_perm.tolist()
@@ -70,8 +70,8 @@ def opt_ranker(args, rel, g, alpha_list):
     rel_g1 = rel[g1_idx]
     rel_g2 = rel[g2_idx]
 
-    max_U_g1_perm = np.argsort(-rel_g1)
-    max_U_g2_perm = np.argsort(-rel_g2)
+    max_U_g1_perm = np.argsort(-rel_g1, stable=True)
+    max_U_g2_perm = np.argsort(-rel_g2, stable=True)
     alt_unfair_perm = -1*np.ones_like(max_U_perm)
     alt_unfair_perm[g1_idx] = g1_idx[max_U_g1_perm]
     alt_unfair_perm[g2_idx] = g2_idx[max_U_g2_perm]
@@ -117,7 +117,7 @@ def opt_ranker(args, rel, g, alpha_list):
 
 def greedy_ranker(args, rel, g):
     f = lambda b: utility_and_unfairness_greedy(b, rel, g, alpha=args.alpha)
-    desc_idx = np.argsort(-rel)
+    desc_idx = np.argsort(-rel, stable=True)
     desc_group_idx_dict = defaultdict(list)
     # loop to split indices by group
     for d_idx in desc_idx:
@@ -192,9 +192,9 @@ def plot_rankings(read_csv_path, write_fig_path=f'./figures/moon_exp.png'):
 
     # compute position movement per document (new_pos - old_pos)
     # inverse permutations: for each doc id, its position in each ordering
-    pos_in_min = np.argsort(min_V_perm, axis=1)
-    pos_in_greedy = np.argsort(greedy_perm, axis=1)
-    pos_in_maxU = np.argsort(max_U_perm, axis=1)
+    pos_in_min = np.argsort(min_V_perm, axis=1, kind='stable')
+    pos_in_greedy = np.argsort(greedy_perm, axis=1, kind='stable')
+    pos_in_maxU = np.argsort(max_U_perm, axis=1, kind='stable')
 
     # per-document movement relative to min_V ordering
     move_per_doc_greedy = pos_in_greedy - pos_in_min

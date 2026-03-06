@@ -18,6 +18,7 @@ import numpy as np
 from matplotlib.ticker import MaxNLocator
 from tqdm import tqdm
 from to_the_moon import get_util_and_unfairness_on_samples
+from collections import Counter
 
 # plt.rcParams['text.usetex'] = True
 # plt.rcParams['text.latex.preamble'] =r"\usepackage{xcolor}"
@@ -216,6 +217,56 @@ def plot_position_freqs(args, read_csv_path, relBs, ratios):
     fig.savefig(f'./figures/moon_exp_cutpts_position_freqs_{args.k}.png', bbox_inches='tight', dpi=300)
 
 
+def get_pattern(row):
+    return ''.join(['A' if x==0 else 'B' for x in row])
+
+def get_pattern_histogram(g_arr):
+    patterns = np.apply_along_axis(get_pattern, 1, g_arr).astype(str)
+    return Counter(patterns)
+
+
+def plot_pattern_hist(args, read_csv_path, relBs, ratios):
+    fig, axes = plt.subplots(ncols=len(relBs), nrows=args.k-1, figsize=(32,15), sharey=True)
+
+    max_len = -1
+    for r in range(1, args.k):
+    # for r in range(3, 4):        
+        for relB, ratio in zip(relBs, ratios):
+            print(f"{read_csv_path.format(exp_path=args.exp_path, relB_val=relB, r_val=r)}")
+            results_df = pd.read_csv(read_csv_path.format(exp_path=args.exp_path, relB_val=relB, r_val=r))
+            gs = np.array(results_df['g'].apply(lambda x: eval(x)).tolist())
+
+            min_V_perm = np.array(results_df['min_V_perm'].apply(lambda x: eval(x)).to_list())
+            greedy_perm = np.array(results_df['greedy_tradeoff_perm'].apply(lambda x: eval(x)).to_list())
+            max_U_perm = np.array(results_df['max_U_perm'].apply(lambda x: eval(x)).to_list())
+
+            gs_min_V = np.take_along_axis(gs, min_V_perm, axis=1)
+            gs_greedy = np.take_along_axis(gs, greedy_perm, axis=1)
+            gs_max_U = np.take_along_axis(gs, max_U_perm, axis=1)
+
+            # count frequencies of group A (0) in each position
+            min_V_pattern_counter = get_pattern_histogram(gs_min_V)
+            print(f"{min_V_pattern_counter=}")
+
+            if len(min_V_pattern_counter) > max_len:
+                max_len = len(min_V_pattern_counter)
+            ax_row, ax_col = r-1, relBs.tolist().index(relB)
+            axes[ax_row, ax_col].bar(list(min_V_pattern_counter.keys()), list(min_V_pattern_counter.values()), label='Group A', color='tab:blue', width=0.5)
+            plt.setp(axes[ax_row, ax_col].get_xticklabels(), rotation=45, ha='right', rotation_mode='anchor')
+            axes[ax_row, ax_col].set_title(fr"$\alpha$: {ratio:.2f}")
+    # set the x-axis limits for all axes based on the maximum pattern length
+    for row in range(len(relBs)):
+        for col in range(args.k-1):
+            ax = axes[col, row]
+            ax.set_xlim(-0.5, max_len - 0.5)
+
+    # Set the ticks and ticklabels for all axes
+    fig.supxlabel('Frequency')
+    fig.supylabel(r'Pattern for each row $|r|$ = 1,...,5')
+    fig.tight_layout(rect=(0.025,0,1,1))
+    fig.savefig(f'./figures/moon_exp_pattern_hists_{args.k}.png', bbox_inches='tight', dpi=300)
+
+
 if __name__ == "__main__":
     args = _parse_args(None)
     round_decimals = 6
@@ -246,8 +297,9 @@ if __name__ == "__main__":
         plot_pattern(args, read_csv_path='{exp_path}moon_exp_cutpts_relB_{relB_val:.2f}_r_{r_val}.csv', relBs=relBs, ratios=ratios)
         plot_position_freqs(args, read_csv_path='{exp_path}moon_exp_cutpts_relB_{relB_val:.2f}_r_{r_val}.csv', relBs=relBs, ratios=ratios)
     else:
-        plot_pattern(args, read_csv_path='{exp_path}moon_exp_cutpts_relB_{relB_val:.2f}_r_{r_val}.csv', relBs=relBs, ratios=ratios)
-        plot_position_freqs(args, read_csv_path='{exp_path}moon_exp_cutpts_relB_{relB_val:.2f}_r_{r_val}.csv', relBs=relBs, ratios=ratios)
+        # plot_pattern(args, read_csv_path='{exp_path}moon_exp_cutpts_relB_{relB_val:.2f}_r_{r_val}.csv', relBs=relBs, ratios=ratios)
+        # plot_position_freqs(args, read_csv_path='{exp_path}moon_exp_cutpts_relB_{relB_val:.2f}_r_{r_val}.csv', relBs=relBs, ratios=ratios)
+        plot_pattern_hist(args, read_csv_path='{exp_path}moon_exp_cutpts_relB_{relB_val:.2f}_r_{r_val}.csv', relBs=relBs, ratios=ratios)
     
     # print(torch.round(torch.arange(0., 1., 0.1), decimals=round_decimals))
     # print(torch.round(torch.log(torch.arange(1., 11., 1))/torch.log(torch.tensor(10.)), decimals=round_decimals))

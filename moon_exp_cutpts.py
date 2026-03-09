@@ -16,8 +16,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from matplotlib.ticker import MaxNLocator
-from tqdm import tqdm
 from to_the_moon import get_util_and_unfairness_on_samples
+from utils import sample_groupwise_rels
 from collections import Counter
 
 # plt.rcParams['text.usetex'] = True
@@ -43,18 +43,6 @@ def _parse_args(args):
     return parser.parse_args(args)
 
 # TODO: plot bump chart
-def sample_random_rels_and_gs(args, low=0.0, high=1.0, g_label=0, r=3):
-
-    # rels = torch.tensor([1.]*args.k).repeat(args.m,1)
-    # gs = c.sample(sample_shape=(args.m, args.k)).to(torch.float32) # group memberships
-    # if g_label == 0:
-    rels = rng.uniform(low=low, high=high, size=(int(args.m), int(r))) # relevances
-    gs = np.array([g_label]*(int(r))).repeat(int(args.m),axis=0).reshape(int(args.m), int(r)).astype(np.float32)
-    # else:
-    # rels = u.sample(sample_shape=(int(args.m), int(args.k - args.r))).reshape(int(args.m), int(args.k - args.r)) # relevances
-    # gs = torch.tensor([g_label]*(int(args.k - args.r))).repeat(int(args.m),1).to(torch.float32)
-    return rels, gs
-
 
 def plot_rank_freqs(read_csv_path, relA):
     results_df = pd.read_csv(read_csv_path)
@@ -94,7 +82,7 @@ def plot_rank_freqs(read_csv_path, relA):
     axes.set_ylabel("0.5 - Normalized Frequency of Group A Documents")
     axes.legend()
     axes.set_title("RelA: {:.2f}, RelB: {:.2f}".format(relA, 1-relA))
-    fig.savefig(f'./figures/moon_rank_freqs_relA_{relA:.2f}.png', bbox_inches='tight', dpi=300)
+    fig.savefig(f'./figures/moon_rank_freqs_relA_{relA:.2f}.pdf', bbox_inches='tight', dpi=300)
 
 
 def get_most_frequent_g(g_arr, r):
@@ -108,7 +96,7 @@ def get_most_frequent_g(g_arr, r):
     return result
 
 
-def plot_pattern(args, read_csv_path, relBs, ratios):
+def plot_pattern(args, read_csv_path, relAs, ratios):
     fig, axes = plt.subplots(ncols=1, nrows=1, figsize=(12,10))
     color_map = plt.get_cmap('tab10').colors 
 
@@ -116,9 +104,9 @@ def plot_pattern(args, read_csv_path, relBs, ratios):
     # for r in range(3, 4):
         ratio_list, pattern_min_V_list, pattern_max_U_list = [], [], []
         prev_pattern_min_V, prev_pattern_max_U = None, None
-        for relB, ratio in zip(relBs, ratios):
-            print(f"{read_csv_path.format(exp_path=args.exp_path, relB_val=relB, r_val=r)}")
-            results_df = pd.read_csv(read_csv_path.format(exp_path=args.exp_path, relB_val=relB, r_val=r))
+        for relA, ratio in zip(relAs, ratios):
+            print(f"{read_csv_path.format(exp_path=args.exp_path, relA_val=relA, r_val=r)}")
+            results_df = pd.read_csv(read_csv_path.format(exp_path=args.exp_path, relA_val=relA, r_val=r))
             gs = np.array(results_df['g'].apply(lambda x: eval(x)).tolist())
 
             min_V_perm = np.array(results_df['min_V_perm'].apply(lambda x: eval(x)).to_list())
@@ -143,7 +131,6 @@ def plot_pattern(args, read_csv_path, relBs, ratios):
                 pattern_min_V_list.append(pattern_min_V)
                 pattern_max_U_list.append(pattern_max_U)
                 prev_pattern_min_V = pattern_min_V
-                # print(f"ratio={(1.-relB)/relB:.2f}, ex-post max util:{pattern_max_U}, ex-post max fair:{pattern_min_V}, {g1_min_V=}")
 
         axes.axhline(y=r, color=color_map[(r-1)%len(color_map)], linestyle="--")
         axes.plot(ratio_list, [r for _ in range(len(ratio_list))], 'o-', color=color_map[(r-1)%len(color_map)])
@@ -166,7 +153,6 @@ def plot_pattern(args, read_csv_path, relBs, ratios):
     axes.set_xlabel("rel(A)/rel(B) Ratio")
     axes.set_ylabel("number of A docs")
 
-    fig.savefig(f'./figures/moon_exp_cutpts_{args.k}.png', bbox_inches='tight', dpi=300)
     fig.savefig(f'./figures/moon_exp_cutpts_{args.k}.pdf', bbox_inches='tight', dpi=300)
         
 
@@ -179,14 +165,14 @@ def count_g_occurrences(g_arr, r):
     return g1_proportions, g2_proportions
 
 
-def plot_position_freqs(args, read_csv_path, relBs, ratios):
-    fig, axes = plt.subplots(ncols=len(relBs), nrows=args.k-1, figsize=(32,15), sharex=True, sharey=True)
+def plot_position_freqs(args, read_csv_path, relAs, ratios):
+    fig, axes = plt.subplots(ncols=len(relAs), nrows=args.k-1, figsize=(32,15), sharex=True, sharey=True)
 
     for r in range(1, args.k):
     # for r in range(3, 4):        
-        for relB, ratio in zip(relBs, ratios):
-            print(f"{read_csv_path.format(exp_path=args.exp_path, relB_val=relB, r_val=r)}")
-            results_df = pd.read_csv(read_csv_path.format(exp_path=args.exp_path, relB_val=relB, r_val=r))
+        for relA, ratio in zip(relAs, ratios):
+            print(f"{read_csv_path.format(exp_path=args.exp_path, relA_val=relA, r_val=r)}")
+            results_df = pd.read_csv(read_csv_path.format(exp_path=args.exp_path, relA_val=relA, r_val=r))
             gs = np.array(results_df['g'].apply(lambda x: eval(x)).tolist())
 
             min_V_perm = np.array(results_df['min_V_perm'].apply(lambda x: eval(x)).to_list())
@@ -203,7 +189,7 @@ def plot_position_freqs(args, read_csv_path, relBs, ratios):
             min_V_pattern = get_most_frequent_g(gs_min_V, r)
             min_V_pattern_txt = ''.join(['A' if x==0 else 'B' for x in min_V_pattern])
 
-            ax_row, ax_col = r-1, relBs.tolist().index(relB)
+            ax_row, ax_col = r-1, relAs.tolist().index(relA)
             axes[ax_row, ax_col].plot(g1_min_V_proportions, label='Group A', color='blue')
             axes[ax_row, ax_col].plot(g2_min_V_proportions, label='Group B', color='orange')
             axes[ax_row, ax_col].set_title(fr"$\alpha$: {ratio:.2f}"f"\n{min_V_pattern_txt}")
@@ -214,7 +200,7 @@ def plot_position_freqs(args, read_csv_path, relBs, ratios):
     handles1, labels1 = axes[0, 0].get_legend_handles_labels()
     fig.legend(handles1, labels1, loc='lower left')
     fig.tight_layout(rect=(0.025,0,1,1))
-    fig.savefig(f'./figures/moon_exp_cutpts_position_freqs_{args.k}.png', bbox_inches='tight', dpi=300)
+    fig.savefig(f'./figures/moon_exp_cutpts_position_freqs_{args.k}.pdf', bbox_inches='tight', dpi=300)
 
 
 def get_pattern(row):
@@ -225,15 +211,15 @@ def get_pattern_histogram(g_arr):
     return Counter(patterns)
 
 
-def plot_pattern_hist(args, read_csv_path, relBs, ratios):
-    fig, axes = plt.subplots(ncols=len(relBs), nrows=args.k-1, figsize=(32,15), sharey=True)
+def plot_pattern_hist(args, read_csv_path, relAs, ratios):
+    fig, axes = plt.subplots(ncols=len(relAs), nrows=args.k-1, figsize=(32,15), sharey=True)
 
     max_len = -1
     for r in range(1, args.k):
     # for r in range(3, 4):        
-        for relB, ratio in zip(relBs, ratios):
-            print(f"{read_csv_path.format(exp_path=args.exp_path, relB_val=relB, r_val=r)}")
-            results_df = pd.read_csv(read_csv_path.format(exp_path=args.exp_path, relB_val=relB, r_val=r))
+        for relA, ratio in zip(relAs, ratios):
+            print(f"{read_csv_path.format(exp_path=args.exp_path, relA_val=relA, r_val=r)}")
+            results_df = pd.read_csv(read_csv_path.format(exp_path=args.exp_path, relA_val=relA, r_val=r))
             gs = np.array(results_df['g'].apply(lambda x: eval(x)).tolist())
 
             min_V_perm = np.array(results_df['min_V_perm'].apply(lambda x: eval(x)).to_list())
@@ -247,15 +233,16 @@ def plot_pattern_hist(args, read_csv_path, relBs, ratios):
             # count frequencies of group A (0) in each position
             min_V_pattern_counter = get_pattern_histogram(gs_min_V)
             print(f"{min_V_pattern_counter=}")
+            min_V_pattern_counter = dict(sorted(min_V_pattern_counter.items(), key=lambda item: item[0]))
 
             if len(min_V_pattern_counter) > max_len:
                 max_len = len(min_V_pattern_counter)
-            ax_row, ax_col = r-1, relBs.tolist().index(relB)
+            ax_row, ax_col = r-1, relAs.tolist().index(relA)
             axes[ax_row, ax_col].bar(list(min_V_pattern_counter.keys()), list(min_V_pattern_counter.values()), label='Group A', color='tab:blue', width=0.5)
             plt.setp(axes[ax_row, ax_col].get_xticklabels(), rotation=45, ha='right', rotation_mode='anchor')
             axes[ax_row, ax_col].set_title(fr"$\alpha$: {ratio:.2f}")
     # set the x-axis limits for all axes based on the maximum pattern length
-    for row in range(len(relBs)):
+    for row in range(len(relAs)):
         for col in range(args.k-1):
             ax = axes[col, row]
             ax.set_xlim(-0.5, max_len - 0.5)
@@ -264,7 +251,7 @@ def plot_pattern_hist(args, read_csv_path, relBs, ratios):
     fig.supxlabel('Frequency')
     fig.supylabel(r'Pattern for each row $|r|$ = 1,...,5')
     fig.tight_layout(rect=(0.025,0,1,1))
-    fig.savefig(f'./figures/moon_exp_pattern_hists_{args.k}.png', bbox_inches='tight', dpi=300)
+    fig.savefig(f'./figures/moon_exp_pattern_hists_{args.k}.pdf', bbox_inches='tight', dpi=300)
 
 
 if __name__ == "__main__":
@@ -273,33 +260,32 @@ if __name__ == "__main__":
     np.set_printoptions(suppress=True, precision=round_decimals)
     rng = np.random.default_rng(seed=args.seed)
     
-    # relBs=np.array([0.5, 0.49, 0.48, 0.47, 0.46, 0.45, 0.44, 0.43, 0.42, 0.41, 0.40, 0.35, 0.30, 0.20])
-    # relBs=np.array([0.30, 0.20])
     ratios = np.logspace(0.0, 0.3, 15)
-    relAs = [1]*len(ratios)  # Keep relAs constant at 100
-    relBs = relAs / ratios  
+    relBs = [1]*len(ratios)  # Keep relBs constant
+    relAs = ratios * np.array(relBs)  # Calculate relAs based on the ratios and constant relBs
     if not args.just_plot:
         for relA, relB, ratio in zip(relAs, relBs, ratios):
             for r in range(1, args.k):
             # for r in range(3, 4):
                 print(f"relB: {relB}, ratio={ratio} Group A rel={relA}, Group B rel={relB}, r={r}")
-                rels_1, gs_1 = sample_random_rels_and_gs(args, low=relA-0.1, high=relA, g_label=0, r=r)
-                rels_2, gs_2 = sample_random_rels_and_gs(args, low=relB-0.1, high=relB, g_label=1, r=args.k - r)
+                rels_1, gs_1 = sample_groupwise_rels(args, low=relA-0.1, high=relA, g_label=0, r=r)
+                rels_2, gs_2 = sample_groupwise_rels(args, low=relB-0.1, high=relB, g_label=1, r=args.k - r)
                 print(f"{gs_1[0]=}, {gs_2[0]=}")
                 concatenated_rels = np.concatenate([rels_1, rels_2], axis=-1)
                 rels = concatenated_rels.reshape(rels_1.shape[0], -1)
                 concatenated_gs = np.concatenate([gs_1, gs_2], axis=-1)
                 gs = concatenated_gs.reshape(gs_1.shape[0], -1)
                 
-                get_util_and_unfairness_on_samples(args, rels, gs, alpha_list=[0.0], write_csv_path=f"{args.exp_path}/moon_exp_cutpts_relB_{relB:.2f}_r_{r}.csv")
+                get_util_and_unfairness_on_samples(args, rels, gs, alpha_list=[0.0], write_csv_path=f"{args.exp_path}/moon_exp_cutpts_relA_{relA:.2f}_r_{r}.csv")
                 ## analyze rankings
                 # plot_rank_freqs(read_csv_path=f'{args.exp_path}/moon_exp_cutpts_relB_{relB:.2f}_r_{r}.csv', relB=relB)
-        plot_pattern(args, read_csv_path='{exp_path}moon_exp_cutpts_relB_{relB_val:.2f}_r_{r_val}.csv', relBs=relBs, ratios=ratios)
-        plot_position_freqs(args, read_csv_path='{exp_path}moon_exp_cutpts_relB_{relB_val:.2f}_r_{r_val}.csv', relBs=relBs, ratios=ratios)
+        plot_pattern(args, read_csv_path='{exp_path}moon_exp_cutpts_relA_{relA_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
+        plot_position_freqs(args, read_csv_path='{exp_path}moon_exp_cutpts_relA_{relA_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
+        plot_pattern_hist(args, read_csv_path='{exp_path}moon_exp_cutpts_relA_{relA_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
     else:
-        # plot_pattern(args, read_csv_path='{exp_path}moon_exp_cutpts_relB_{relB_val:.2f}_r_{r_val}.csv', relBs=relBs, ratios=ratios)
-        # plot_position_freqs(args, read_csv_path='{exp_path}moon_exp_cutpts_relB_{relB_val:.2f}_r_{r_val}.csv', relBs=relBs, ratios=ratios)
-        plot_pattern_hist(args, read_csv_path='{exp_path}moon_exp_cutpts_relB_{relB_val:.2f}_r_{r_val}.csv', relBs=relBs, ratios=ratios)
+        # plot_pattern(args, read_csv_path='{exp_path}moon_exp_cutpts_relB_{relB_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
+        # plot_position_freqs(args, read_csv_path='{exp_path}moon_exp_cutpts_relB_{relB_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
+        plot_pattern_hist(args, read_csv_path='{exp_path}moon_exp_cutpts_relA_{relA_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
     
     # print(torch.round(torch.arange(0., 1., 0.1), decimals=round_decimals))
     # print(torch.round(torch.log(torch.arange(1., 11., 1))/torch.log(torch.tensor(10.)), decimals=round_decimals))

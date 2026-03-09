@@ -1,16 +1,22 @@
 import numpy as np
 
+rng = np.random.default_rng(seed=42)
+
+def sample_groupwise_rels(args, low=0.0, high=1.0, g_label=0, r=3):
+    rels = rng.uniform(low=low, high=high, size=(int(args.m), int(r))) # relevances
+    gs = np.array([g_label]*(int(r))).repeat(int(args.m),axis=0).reshape(int(args.m), int(r)).astype(np.float32)
+    return rels, gs
+
 
 def _position_weights(m):
     return 1.0 / np.log(np.arange(1, m + 1, dtype=np.float32) + 1.0)
 
 
-def unfairness_with_sign(b, rel, g):
+def unfairness(b, rel, g):
     b = np.squeeze(np.asarray(b))
     rel = np.asarray(rel)
     g = np.asarray(g)
     assert b.ndim == 2 and b.shape[0] == b.shape[1]
-    larger_group = None
     m = rel.shape[0]
     w = _position_weights(m)[:, None]
     _, counts = np.unique(g, return_counts=True)
@@ -27,20 +33,7 @@ def unfairness_with_sign(b, rel, g):
     # normalize by group size
     unfairness = np.abs(util_g1 - util_g2)
     unfairness = float(unfairness)
-    
-    if util_g1 > util_g2:
-        larger_group = 0
-    elif util_g2 > util_g1:
-        larger_group = 1
-    return unfairness, larger_group
-
-
-def unfairness(b, rel, g):
-    unfairness, _ = unfairness_with_sign(b, rel, g)
     return unfairness
-
-def unfairness_exact(b, rel, g):
-    return np.array([unfairness(b_slice, rel, g) for b_slice in b])
 
 
 def utility(b, rel):
@@ -56,17 +49,10 @@ def utility(b, rel):
     return float(util)
 
 
-def utility_exact(b, rel):
-    return np.array([utility(b_slice, rel) for b_slice in b])
-
-
 # minimizing unfairness and maximizing utility
 def utility_and_unfairness(b, rel, g, alpha=0.5):
     return (1-alpha)*unfairness(b, rel, g) - alpha*utility(b, rel)
 
-
-def utility_and_unfairness_exact(b, rel, g, alpha=0.5):
-    return (1-alpha)*unfairness_exact(b, rel, g) - alpha*utility_exact(b, rel)
 
 
 def unfairness_greedy(b, rel, g):

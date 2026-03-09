@@ -7,9 +7,10 @@ import numpy as np
 from tqdm import tqdm
 from collections import defaultdict
 from itertools import permutations, filterfalse, chain
-from utils import make_permutation_matrix, utility_and_unfairness, utility, unfairness, unfairness_with_sign, utility_and_unfairness_greedy, utility_greedy, unfairness_greedy
+from utils import make_permutation_matrix, utility_and_unfairness, utility, unfairness, utility_and_unfairness_greedy
 
 rng = np.random.default_rng(seed=42)
+
 
 def _parse_args(args):
     parser = argparse.ArgumentParser()
@@ -156,7 +157,7 @@ def greedy_ranker(args, rel, g):
     }
     return greedy_dict
 
-def get_util_and_unfairness_on_samples(args, rels, gs, alpha_list=[0.5], rank_greedy=True, write_csv_path=None):
+def get_util_and_unfairness_on_samples(args, rels, gs, alpha_list=[0.5], rank_greedy=False, write_csv_path=None):
     # print(rels, gs)
     results_list = list()
     for i in tqdm(range(len(rels))):
@@ -173,7 +174,7 @@ def get_util_and_unfairness_on_samples(args, rels, gs, alpha_list=[0.5], rank_gr
     
 
 
-def plot_rankings(read_csv_path, write_fig_path=f'./figures/moon_exp.png'):
+def plot_rankings(read_csv_path, write_fig_path=f'./figures/moon_exp.pdf'):
     results_df = pd.read_csv(read_csv_path)
     gs = np.array(results_df['g'].apply(lambda x: eval(x)).tolist())
     rels = np.array(results_df['rel'].apply(lambda x: eval(x)).tolist())
@@ -221,7 +222,7 @@ def plot_rankings(read_csv_path, write_fig_path=f'./figures/moon_exp.png'):
 
 
 
-def plot_tradeoff_dist(read_csv_path, alpha_list, write_fig_path=f'./figures/moon_exp_objectives.png'):
+def plot_tradeoff_dist(read_csv_path, alpha_list, write_fig_path=f'./figures/moon_exp_objectives.pdf'):
     results_df = pd.read_csv(read_csv_path)
     fig, axes = plt.subplots(ncols=2+len(alpha_list), nrows=1, figsize=(6*(len(alpha_list)+2),6))
     

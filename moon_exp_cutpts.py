@@ -283,9 +283,6 @@ if __name__ == "__main__":
         plot_position_freqs(args, read_csv_path='{exp_path}moon_exp_cutpts_relA_{relA_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
         plot_pattern_hist(args, read_csv_path='{exp_path}moon_exp_cutpts_relA_{relA_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
     else:
-        # plot_pattern(args, read_csv_path='{exp_path}moon_exp_cutpts_relB_{relB_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
-        # plot_position_freqs(args, read_csv_path='{exp_path}moon_exp_cutpts_relB_{relB_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
+        plot_pattern(args, read_csv_path='{exp_path}moon_exp_cutpts_relA_{relA_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
+        plot_position_freqs(args, read_csv_path='{exp_path}moon_exp_cutpts_relA_{relA_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
         plot_pattern_hist(args, read_csv_path='{exp_path}moon_exp_cutpts_relA_{relA_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
-    
-    # print(torch.round(torch.arange(0., 1., 0.1), decimals=round_decimals))
-    # print(torch.round(torch.log(torch.arange(1., 11., 1))/torch.log(torch.tensor(10.)), decimals=round_decimals))

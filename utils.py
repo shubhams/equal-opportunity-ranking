@@ -107,3 +107,17 @@ def make_permutation_matrix(b):
     # permutation matrix P_b with column representation: p_{ij} = 1 if j = b(i)
     # shs: cols are docs, rows are positions
     return np.eye(b.shape[-1])[b]
+
+
+def unfairness_from_positions(relA_scalar, relB_scalar, gA_positions, all_positions):
+    """
+    Compute unfairness given:
+      relA, relB    : arrays of qualities for group 1 and group 2
+      gA_positions  : set of positions assigned to G1
+      all_positions : full set of positions {1, ..., N}
+    """
+    gB_positions = np.setdiff1d(all_positions, gA_positions)
+    pos_weights = _position_weights(len(all_positions))
+    mean1 = relA_scalar * np.mean([pos_weights[k] for k in gA_positions])
+    mean2 = relB_scalar * np.mean([pos_weights[k] for k in gB_positions])
+    return abs(mean1 - mean2)

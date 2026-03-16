@@ -42,6 +42,22 @@ def _parse_args(args):
     parser.add_argument('--just_plot', action=argparse.BooleanOptionalAction, default=False, help='Whether to just plot the results from csv files without running the experiments again')
     return parser.parse_args(args)
 
+
+def read_g_arr_from_csv(read_csv_path, args, relA, r):
+    print(f"{read_csv_path.format(exp_path=args.exp_path, relA_val=relA, r_val=r)}")
+    results_df = pd.read_csv(read_csv_path.format(exp_path=args.exp_path, relA_val=relA, r_val=r))
+    gs = np.array(results_df['g'].apply(lambda x: eval(x)).tolist())
+
+    min_V_perm = np.array(results_df['min_V_perm'].apply(lambda x: eval(x)).to_list())
+    greedy_perm = np.array(results_df['greedy_tradeoff_perm'].apply(lambda x: eval(x)).to_list())
+    max_U_perm = np.array(results_df['max_U_perm'].apply(lambda x: eval(x)).to_list())
+
+    gs_min_V = np.take_along_axis(gs, min_V_perm, axis=1)
+    gs_greedy = np.take_along_axis(gs, greedy_perm, axis=1)
+    gs_max_U = np.take_along_axis(gs, max_U_perm, axis=1)
+    return gs_min_V, gs_greedy, gs_max_U
+
+
 # TODO: plot bump chart
 
 def plot_rank_freqs(read_csv_path, relA):
@@ -85,6 +101,20 @@ def plot_rank_freqs(read_csv_path, relA):
     fig.savefig(f'./figures/moon_rank_freqs_relA_{relA:.2f}.pdf', bbox_inches='tight', dpi=300)
 
 
+def plot_cdf(read_csv_path):
+    results_df = pd.read_csv(read_csv_path)
+
+    fig, axes = plt.subplots(ncols=1, nrows=1, figsize=(10,8))
+    # axes.ecdf(results_df['max_U'], label='expost max utility')
+    axes.ecdf(1-results_df['min_V'], label='expost max fairness')
+    axes.ecdf(1-results_df['max_U_alt'], label='alternate max utility')
+    axes.ecdf(1-results_df['min_V_alt'], label='alternate max fairness')
+    axes.set_xlabel("Fairness")
+    axes.set_ylabel("CDF")
+    axes.legend()
+    fig.savefig('./figures/fair_cdf.pdf', bbox_inches='tight', dpi=300)
+
+
 def get_most_frequent_g(g_arr, r):
     # Count 0s in each column
     column_zero_counts = (g_arr == 0).sum(axis=0)
@@ -105,20 +135,9 @@ def plot_pattern(args, read_csv_path, relAs, ratios):
         ratio_list, pattern_min_V_list, pattern_max_U_list = [], [], []
         prev_pattern_min_V, prev_pattern_max_U = None, None
         for relA, ratio in zip(relAs, ratios):
-            print(f"{read_csv_path.format(exp_path=args.exp_path, relA_val=relA, r_val=r)}")
-            results_df = pd.read_csv(read_csv_path.format(exp_path=args.exp_path, relA_val=relA, r_val=r))
-            gs = np.array(results_df['g'].apply(lambda x: eval(x)).tolist())
-
-            min_V_perm = np.array(results_df['min_V_perm'].apply(lambda x: eval(x)).to_list())
-            greedy_perm = np.array(results_df['greedy_tradeoff_perm'].apply(lambda x: eval(x)).to_list())
-            max_U_perm = np.array(results_df['max_U_perm'].apply(lambda x: eval(x)).to_list())
-
-            gs_min_V = np.take_along_axis(gs, min_V_perm, axis=1)
-            gs_greedy = np.take_along_axis(gs, greedy_perm, axis=1)
-            gs_max_U = np.take_along_axis(gs, max_U_perm, axis=1)
+            gs_min_V, gs_greedy, gs_max_U = read_g_arr_from_csv(read_csv_path, args, relA, r)
 
             # count frequencies of group A (0) in each position
-            g1 = get_most_frequent_g(gs, r)
             g1_min_V = get_most_frequent_g(gs_min_V, r)
             g1_max_U = get_most_frequent_g(gs_max_U, r)
             g1_greedy = get_most_frequent_g(gs_greedy, r)
@@ -171,17 +190,7 @@ def plot_position_freqs(args, read_csv_path, relAs, ratios):
     for r in range(1, args.k):
     # for r in range(3, 4):        
         for relA, ratio in zip(relAs, ratios):
-            print(f"{read_csv_path.format(exp_path=args.exp_path, relA_val=relA, r_val=r)}")
-            results_df = pd.read_csv(read_csv_path.format(exp_path=args.exp_path, relA_val=relA, r_val=r))
-            gs = np.array(results_df['g'].apply(lambda x: eval(x)).tolist())
-
-            min_V_perm = np.array(results_df['min_V_perm'].apply(lambda x: eval(x)).to_list())
-            greedy_perm = np.array(results_df['greedy_tradeoff_perm'].apply(lambda x: eval(x)).to_list())
-            max_U_perm = np.array(results_df['max_U_perm'].apply(lambda x: eval(x)).to_list())
-
-            gs_min_V = np.take_along_axis(gs, min_V_perm, axis=1)
-            gs_greedy = np.take_along_axis(gs, greedy_perm, axis=1)
-            gs_max_U = np.take_along_axis(gs, max_U_perm, axis=1)
+            gs_min_V, gs_greedy, gs_max_U = read_g_arr_from_csv(read_csv_path, args, relA, r)
 
             # count frequencies of group A (0) in each position
             g1_min_V_proportions, g2_min_V_proportions = count_g_occurrences(gs_min_V, r)
@@ -192,7 +201,7 @@ def plot_position_freqs(args, read_csv_path, relAs, ratios):
             ax_row, ax_col = r-1, relAs.tolist().index(relA)
             axes[ax_row, ax_col].plot(g1_min_V_proportions, label='Group A', color='blue')
             axes[ax_row, ax_col].plot(g2_min_V_proportions, label='Group B', color='orange')
-            axes[ax_row, ax_col].set_title(fr"$\alpha$: {ratio:.2f}"f"\n{min_V_pattern_txt}")
+            axes[ax_row, ax_col].set_title(fr"$\rho$: {ratio:.2f}"f"\n{min_V_pattern_txt}")
     # Set the ticks and ticklabels for all axes
     plt.setp(axes, xticks=np.arange(0, args.k), xticklabels=[f'{i}' for i in range(1, args.k+1)])
     fig.supxlabel('Rank Position')
@@ -218,17 +227,7 @@ def plot_pattern_hist(args, read_csv_path, relAs, ratios):
     for r in range(1, args.k):
     # for r in range(3, 4):        
         for relA, ratio in zip(relAs, ratios):
-            print(f"{read_csv_path.format(exp_path=args.exp_path, relA_val=relA, r_val=r)}")
-            results_df = pd.read_csv(read_csv_path.format(exp_path=args.exp_path, relA_val=relA, r_val=r))
-            gs = np.array(results_df['g'].apply(lambda x: eval(x)).tolist())
-
-            min_V_perm = np.array(results_df['min_V_perm'].apply(lambda x: eval(x)).to_list())
-            greedy_perm = np.array(results_df['greedy_tradeoff_perm'].apply(lambda x: eval(x)).to_list())
-            max_U_perm = np.array(results_df['max_U_perm'].apply(lambda x: eval(x)).to_list())
-
-            gs_min_V = np.take_along_axis(gs, min_V_perm, axis=1)
-            gs_greedy = np.take_along_axis(gs, greedy_perm, axis=1)
-            gs_max_U = np.take_along_axis(gs, max_U_perm, axis=1)
+            gs_min_V, gs_greedy, gs_max_U = read_g_arr_from_csv(read_csv_path, args, relA, r)
 
             # count frequencies of group A (0) in each position
             min_V_pattern_counter = get_pattern_histogram(gs_min_V)
@@ -240,7 +239,7 @@ def plot_pattern_hist(args, read_csv_path, relAs, ratios):
             ax_row, ax_col = r-1, relAs.tolist().index(relA)
             axes[ax_row, ax_col].bar(list(min_V_pattern_counter.keys()), list(min_V_pattern_counter.values()), label='Group A', color='tab:blue', width=0.5)
             plt.setp(axes[ax_row, ax_col].get_xticklabels(), rotation=45, ha='right', rotation_mode='anchor')
-            axes[ax_row, ax_col].set_title(fr"$\alpha$: {ratio:.2f}")
+            axes[ax_row, ax_col].set_title(fr"$\rho$: {ratio:.2f}")
     # set the x-axis limits for all axes based on the maximum pattern length
     for row in range(len(relAs)):
         for col in range(args.k-1):

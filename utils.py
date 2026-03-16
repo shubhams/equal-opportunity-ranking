@@ -109,7 +109,7 @@ def make_permutation_matrix(b):
     return np.eye(b.shape[-1])[b]
 
 
-def unfairness_from_positions(relA_scalar, relB_scalar, gA_positions, all_positions):
+def unfairness_from_positions(gA_positions, relA_scalar, relB_scalar, all_positions):
     """
     Compute unfairness given:
       relA, relB    : arrays of qualities for group 1 and group 2

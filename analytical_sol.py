@@ -1,6 +1,9 @@
 import argparse
+from functools import partial
 import time
 import numpy as np
+import multiprocessing as mp
+import pandas as pd
 
 from utils import unfairness_from_positions
 from itertools import combinations
@@ -9,7 +12,7 @@ from itertools import combinations
 def _parse_args(args):
     parser = argparse.ArgumentParser()
     parser.add_argument('--k', type=int, default=6, help='Dimension of vector to sort')
-    parser.add_argument('--m', type=int, default=100, help='Number of documents to sample from the bag of documents')
+    parser.add_argument('--r', type=int, default=3, help='Number of Group A documents')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     return parser.parse_args(args)
 
@@ -35,11 +38,21 @@ def fixed_rel_fair_ranking(rel_A, rel_B, r, s):
     all_positions = np.arange(m)
     best_score, best_positions = float("inf"), None
 
-    for g1_pos in combinations(range(m), r):
-        score = unfairness_from_positions(rel_A, rel_B, g1_pos, all_positions)
-        if score < best_score:
-            best_score = score
-            best_positions = g1_pos
+    g1_pos_combs = list(combinations(range(m), r))
+    num_cores = mp.cpu_count()
+    partial_function = partial(unfairness_from_positions, relA_scalar=rel_A, relB_scalar=rel_B, all_positions=all_positions)
+
+    with mp.Pool(processes=num_cores) as pool:
+        # scores is a list of return values from the workers
+        scores = pool.map(partial_function, g1_pos_combs)
+
+    min_score_index = np.argmin(scores)
+    best_positions, best_score = g1_pos_combs[min_score_index], scores[min_score_index]
+    # for g1_pos in combinations(range(m), r):
+    #     score = unfairness_from_positions(rel_A, rel_B, g1_pos, all_positions)
+    #     if score < best_score:
+    #         best_score = score
+    #         best_positions = g1_pos
 
     return best_positions, best_score
 
@@ -49,9 +62,8 @@ if __name__ == "__main__":
     # Example usage
     class Args:
         k = 100  # dimension of vector to sort
-        m = 2
     args = Args()
-    ratios = np.logspace(0.0, 0.3, 2)
+    ratios = np.logspace(0.0, 0.3, 12)
     # ratios = np.array([1.5])
     relBs = [1]*len(ratios)  # Keep relBs constant
     relAs = ratios * np.array(relBs)  # Calculate relAs based on the ratios and constant relBs
@@ -60,12 +72,13 @@ if __name__ == "__main__":
     # relBs = np.array([0.6])
     # relAs = np.array([0.9])
     # ratios = relAs / relBs
+    data_list = list()
 
     for relA, relB, ratio in zip(relAs, relBs, ratios):
         # for r in range(1, args.k):
         # for r in range(3, 4):
         for r in range(5, 6):
-            print(f"relB: {relB}, ratio={ratio} Group A rel={relA}, Group B rel={relB}, r={r}")
+            print(f"ratio={ratio} Group A rel={relA}, Group B rel={relB}, r={r}")
 
             # rels = np.array([relA]*r + [relB]*(args.k - r))  # dummy rels since exact_fair_ranking only needs scalar relA and relB
             # gs = np.array([0]*r + [1]*(args.k - r))  # dummy
@@ -90,6 +103,14 @@ if __name__ == "__main__":
             print(f"Pattern: {pattern}")
             
             print(f"Function executed in {elapsed_time:.4f} seconds")
+            data_list.append((relA, relB, ratio, r, unfairness, pattern, elapsed_time))
+
+    column_names = ['relA', 'relB', 'ratio', 'r', 'unfairness', 'pattern', 'elapsed_time']
+
+    # Create the DataFrame
+    df = pd.DataFrame(data_list, columns=column_names)
+    df.to_csv(f'./exp_log/exact_sol_k_{args.k}.csv', index=False)
+
 
 
 

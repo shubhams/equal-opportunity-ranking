@@ -174,7 +174,7 @@ def get_util_and_unfairness_on_samples(args, rels, gs, alpha_list=[0.5], rank_gr
     
 
 
-def plot_rankings(read_csv_path, write_fig_path=f'./figures/moon_exp.pdf'):
+def plot_rankings(read_csv_path, write_fig_path=f'./figures/exp.pdf'):
     results_df = pd.read_csv(read_csv_path)
     gs = np.array(results_df['g'].apply(lambda x: eval(x)).tolist())
     rels = np.array(results_df['rel'].apply(lambda x: eval(x)).tolist())
@@ -222,7 +222,7 @@ def plot_rankings(read_csv_path, write_fig_path=f'./figures/moon_exp.pdf'):
 
 
 
-def plot_tradeoff_dist(read_csv_path, alpha_list, write_fig_path=f'./figures/moon_exp_objectives.pdf'):
+def plot_tradeoff_dist(read_csv_path, alpha_list, write_fig_path=f'./figures/exp_objectives.pdf'):
     results_df = pd.read_csv(read_csv_path)
     fig, axes = plt.subplots(ncols=2+len(alpha_list), nrows=1, figsize=(6*(len(alpha_list)+2),6))
     
@@ -249,8 +249,8 @@ if __name__ == "__main__":
     rng = np.random.default_rng(seed=args.seed)
     # # Exp 1
     # rels, gs = sample_random_rels_and_gs(args)
-    # get_util_and_unfairness_on_samples(args, rels, gs, alpha_list=[0.0], write_csv_path=f"{args.exp_path}/moon_exp.csv")
-    # plot_rankings(read_csv_path=f'{args.exp_path}/moon_exp.csv')
+    # get_util_and_unfairness_on_samples(args, rels, gs, alpha_list=[0.0], write_csv_path=f"{args.exp_path}/exp.csv")
+    # plot_rankings(read_csv_path=f'{args.exp_path}/exp.csv')
     # Exp 2
     alpha_list=[0., 0.01, 0.05, 0.1, 0.5, 1.]
     rels, gs = sample_random_rels_and_gs(args, low=500., high=1_000.)

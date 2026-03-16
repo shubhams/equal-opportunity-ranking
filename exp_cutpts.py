@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from matplotlib.ticker import MaxNLocator
-from to_the_moon import get_util_and_unfairness_on_samples
+from ranker import get_util_and_unfairness_on_samples
 from utils import sample_groupwise_rels
 from collections import Counter
 
@@ -49,13 +49,13 @@ def read_g_arr_from_csv(read_csv_path, args, relA, r):
     gs = np.array(results_df['g'].apply(lambda x: eval(x)).tolist())
 
     min_V_perm = np.array(results_df['min_V_perm'].apply(lambda x: eval(x)).to_list())
-    greedy_perm = np.array(results_df['greedy_tradeoff_perm'].apply(lambda x: eval(x)).to_list())
+    # greedy_perm = np.array(results_df['greedy_tradeoff_perm'].apply(lambda x: eval(x)).to_list())
     max_U_perm = np.array(results_df['max_U_perm'].apply(lambda x: eval(x)).to_list())
 
     gs_min_V = np.take_along_axis(gs, min_V_perm, axis=1)
-    gs_greedy = np.take_along_axis(gs, greedy_perm, axis=1)
+    # gs_greedy = np.take_along_axis(gs, greedy_perm, axis=1)
     gs_max_U = np.take_along_axis(gs, max_U_perm, axis=1)
-    return gs_min_V, gs_greedy, gs_max_U
+    return gs_min_V, gs_max_U
 
 
 # TODO: plot bump chart
@@ -98,7 +98,7 @@ def plot_rank_freqs(read_csv_path, relA):
     axes.set_ylabel("0.5 - Normalized Frequency of Group A Documents")
     axes.legend()
     axes.set_title("RelA: {:.2f}, RelB: {:.2f}".format(relA, 1-relA))
-    fig.savefig(f'./figures/moon_rank_freqs_relA_{relA:.2f}.pdf', bbox_inches='tight', dpi=300)
+    fig.savefig(f'./figures/rank_freqs_relA_{relA:.2f}.pdf', bbox_inches='tight', dpi=300)
 
 
 def plot_cdf(read_csv_path):
@@ -135,12 +135,11 @@ def plot_pattern(args, read_csv_path, relAs, ratios):
         ratio_list, pattern_min_V_list, pattern_max_U_list = [], [], []
         prev_pattern_min_V, prev_pattern_max_U = None, None
         for relA, ratio in zip(relAs, ratios):
-            gs_min_V, gs_greedy, gs_max_U = read_g_arr_from_csv(read_csv_path, args, relA, r)
+            gs_min_V, gs_max_U = read_g_arr_from_csv(read_csv_path, args, relA, r)
 
             # count frequencies of group A (0) in each position
             g1_min_V = get_most_frequent_g(gs_min_V, r)
             g1_max_U = get_most_frequent_g(gs_max_U, r)
-            g1_greedy = get_most_frequent_g(gs_greedy, r)
 
             pattern_min_V = ''.join(['A' if x==0 else 'B' for x in g1_min_V])
             pattern_max_U = ''.join(['A' if x==0 else 'B' for x in g1_max_U])
@@ -169,10 +168,10 @@ def plot_pattern(args, read_csv_path, relAs, ratios):
 
     axes.set_xticks([])
 
-    axes.set_xlabel("rel(A)/rel(B) Ratio")
-    axes.set_ylabel("number of A docs")
+    axes.set_xlabel(r"$\rho$, the ratio of relA to relB")
+    axes.set_ylabel(r"$r$, number of A docs")
 
-    fig.savefig(f'./figures/moon_exp_cutpts_{args.k}.pdf', bbox_inches='tight', dpi=300)
+    fig.savefig(f'./figures/exp_cutpts_{args.k}.pdf', bbox_inches='tight', dpi=300)
         
 
 def count_g_occurrences(g_arr, r):
@@ -190,7 +189,7 @@ def plot_position_freqs(args, read_csv_path, relAs, ratios):
     for r in range(1, args.k):
     # for r in range(3, 4):        
         for relA, ratio in zip(relAs, ratios):
-            gs_min_V, gs_greedy, gs_max_U = read_g_arr_from_csv(read_csv_path, args, relA, r)
+            gs_min_V, gs_max_U = read_g_arr_from_csv(read_csv_path, args, relA, r)
 
             # count frequencies of group A (0) in each position
             g1_min_V_proportions, g2_min_V_proportions = count_g_occurrences(gs_min_V, r)
@@ -209,7 +208,7 @@ def plot_position_freqs(args, read_csv_path, relAs, ratios):
     handles1, labels1 = axes[0, 0].get_legend_handles_labels()
     fig.legend(handles1, labels1, loc='lower left')
     fig.tight_layout(rect=(0.025,0,1,1))
-    fig.savefig(f'./figures/moon_exp_cutpts_position_freqs_{args.k}.pdf', bbox_inches='tight', dpi=300)
+    fig.savefig(f'./figures/exp_cutpts_position_freqs_{args.k}.pdf', bbox_inches='tight', dpi=300)
 
 
 def get_pattern(row):
@@ -227,7 +226,7 @@ def plot_pattern_hist(args, read_csv_path, relAs, ratios):
     for r in range(1, args.k):
     # for r in range(3, 4):        
         for relA, ratio in zip(relAs, ratios):
-            gs_min_V, gs_greedy, gs_max_U = read_g_arr_from_csv(read_csv_path, args, relA, r)
+            gs_min_V, gs_max_U = read_g_arr_from_csv(read_csv_path, args, relA, r)
 
             # count frequencies of group A (0) in each position
             min_V_pattern_counter = get_pattern_histogram(gs_min_V)
@@ -250,7 +249,7 @@ def plot_pattern_hist(args, read_csv_path, relAs, ratios):
     fig.supxlabel('Frequency')
     fig.supylabel(r'Pattern for each row $|r|$ = 1,...,5')
     fig.tight_layout(rect=(0.025,0,1,1))
-    fig.savefig(f'./figures/moon_exp_pattern_hists_{args.k}.pdf', bbox_inches='tight', dpi=300)
+    fig.savefig(f'./figures/exp_pattern_hists_{args.k}.pdf', bbox_inches='tight', dpi=300)
 
 
 if __name__ == "__main__":
@@ -275,13 +274,13 @@ if __name__ == "__main__":
                 concatenated_gs = np.concatenate([gs_1, gs_2], axis=-1)
                 gs = concatenated_gs.reshape(gs_1.shape[0], -1)
                 
-                get_util_and_unfairness_on_samples(args, rels, gs, alpha_list=[0.0], write_csv_path=f"{args.exp_path}/moon_exp_cutpts_relA_{relA:.2f}_r_{r}.csv")
+                get_util_and_unfairness_on_samples(args, rels, gs, alpha_list=[0.0], write_csv_path=f"{args.exp_path}/exp_cutpts_relA_{relA:.2f}_r_{r}.csv")
                 ## analyze rankings
-                # plot_rank_freqs(read_csv_path=f'{args.exp_path}/moon_exp_cutpts_relB_{relB:.2f}_r_{r}.csv', relB=relB)
-        plot_pattern(args, read_csv_path='{exp_path}moon_exp_cutpts_relA_{relA_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
-        plot_position_freqs(args, read_csv_path='{exp_path}moon_exp_cutpts_relA_{relA_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
-        plot_pattern_hist(args, read_csv_path='{exp_path}moon_exp_cutpts_relA_{relA_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
+                # plot_rank_freqs(read_csv_path=f'{args.exp_path}/exp_cutpts_relB_{relB:.2f}_r_{r}.csv', relB=relB)
+        plot_pattern(args, read_csv_path='{exp_path}exp_cutpts_relA_{relA_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
+        plot_position_freqs(args, read_csv_path='{exp_path}exp_cutpts_relA_{relA_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
+        plot_pattern_hist(args, read_csv_path='{exp_path}exp_cutpts_relA_{relA_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
     else:
-        plot_pattern(args, read_csv_path='{exp_path}moon_exp_cutpts_relA_{relA_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
-        plot_position_freqs(args, read_csv_path='{exp_path}moon_exp_cutpts_relA_{relA_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
-        plot_pattern_hist(args, read_csv_path='{exp_path}moon_exp_cutpts_relA_{relA_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
+        plot_pattern(args, read_csv_path='{exp_path}exp_cutpts_relA_{relA_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
+        plot_position_freqs(args, read_csv_path='{exp_path}exp_cutpts_relA_{relA_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)
+        plot_pattern_hist(args, read_csv_path='{exp_path}exp_cutpts_relA_{relA_val:.2f}_r_{r_val}.csv', relAs=relAs, ratios=ratios)

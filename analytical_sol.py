@@ -59,14 +59,12 @@ def fixed_rel_fair_ranking(rel_A, rel_B, r, s):
 
 
 if __name__ == "__main__":
-    # Example usage
-    class Args:
-        k = 100  # dimension of vector to sort
-    args = Args()
+    args = _parse_args(None)
     ratios = np.logspace(0.0, 0.3, 12)
     # ratios = np.array([1.5])
     relBs = [1]*len(ratios)  # Keep relBs constant
     relAs = ratios * np.array(relBs)  # Calculate relAs based on the ratios and constant relBs
+    r = args.r
     
     
     # relBs = np.array([0.6])
@@ -75,35 +73,33 @@ if __name__ == "__main__":
     data_list = list()
 
     for relA, relB, ratio in zip(relAs, relBs, ratios):
-        # for r in range(1, args.k):
-        # for r in range(3, 4):
-        for r in range(5, 6):
-            print(f"ratio={ratio} Group A rel={relA}, Group B rel={relB}, r={r}")
 
-            # rels = np.array([relA]*r + [relB]*(args.k - r))  # dummy rels since exact_fair_ranking only needs scalar relA and relB
-            # gs = np.array([0]*r + [1]*(args.k - r))  # dummy
-            # rels = np.tile(rels, (1, 1))
-            # gs = np.tile(gs, (1, 1))
-            # results = get_util_and_unfairness_on_samples(args, rels, gs, alpha_list=[])
-            # print(rels[0][np.array(results['min_V_perm'][0])])
-            # gA_pos = gs[0][np.array(results['min_V_perm'][0])]
-            # print(gA_pos)
-            # print(results['min_V'])
-            # pattern = "".join("A" if p == 0 else "B" for p in gA_pos)
-            # print(pattern)
+        print(f"ratio={ratio} Group A rel={relA}, Group B rel={relB}, r={r}")
 
-            start_time = time.perf_counter()
-            gA_pos, unfairness = fixed_rel_fair_ranking(relA, relB, r, args.k - r)
-            end_time = time.perf_counter()
-            elapsed_time = end_time - start_time
+        # rels = np.array([relA]*r + [relB]*(args.k - r))  # dummy rels since exact_fair_ranking only needs scalar relA and relB
+        # gs = np.array([0]*r + [1]*(args.k - r))  # dummy
+        # rels = np.tile(rels, (1, 1))
+        # gs = np.tile(gs, (1, 1))
+        # results = get_util_and_unfairness_on_samples(args, rels, gs, alpha_list=[])
+        # print(rels[0][np.array(results['min_V_perm'][0])])
+        # gA_pos = gs[0][np.array(results['min_V_perm'][0])]
+        # print(gA_pos)
+        # print(results['min_V'])
+        # pattern = "".join("A" if p == 0 else "B" for p in gA_pos)
+        # print(pattern)
 
-            pattern = "".join("A" if k in gA_pos else "B" for k in range(args.k))
-            print(f"Best positions for G1: {gA_pos}")
-            print(f"Unfairness: {unfairness}")
-            print(f"Pattern: {pattern}")
-            
-            print(f"Function executed in {elapsed_time:.4f} seconds")
-            data_list.append((relA, relB, ratio, r, unfairness, pattern, elapsed_time))
+        start_time = time.perf_counter()
+        gA_pos, unfairness = fixed_rel_fair_ranking(relA, relB, r, args.k - r)
+        end_time = time.perf_counter()
+        elapsed_time = end_time - start_time
+
+        pattern = "".join("A" if k in gA_pos else "B" for k in range(args.k))
+        print(f"Best positions for G1: {gA_pos}")
+        print(f"Unfairness: {unfairness}")
+        print(f"Pattern: {pattern}")
+        
+        print(f"Function executed in {elapsed_time:.4f} seconds")
+        data_list.append((relA, relB, ratio, r, unfairness, pattern, elapsed_time))
 
     column_names = ['relA', 'relB', 'ratio', 'r', 'unfairness', 'pattern', 'elapsed_time']
 
